@@ -1,8 +1,11 @@
 venv/
 expense_tracker.db
+spendly.db
 __pycache__/
 *.pyc
 *.pyo
 .env
 .DS_Store
 .claude/plans/
+__app_stderr.txt
+__app_stdout.txt
