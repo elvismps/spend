@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db, close_db, \
@@ -97,14 +98,38 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+
+    for d in (start_date, end_date):
+        if d:
+            try:
+                datetime.strptime(d, "%Y-%m-%d")
+            except ValueError:
+                abort(400)
+
+    if start_date and end_date and start_date > end_date:
+        abort(400)
+
+    if start_date and end_date:
+        range_label = f"{start_date} – {end_date}"
+    elif start_date:
+        range_label = f"from {start_date}"
+    elif end_date:
+        range_label = f"until {end_date}"
+    else:
+        range_label = None
+
     uid = session["user_id"]
-    user         = queries.get_user_by_id(uid)
-    stats        = queries.get_summary_stats(uid)
-    transactions = queries.get_recent_transactions(uid)
-    categories   = queries.get_category_breakdown(uid)
+    user = queries.get_user_by_id(uid)
+    stats = queries.get_summary_stats(uid, start_date=start_date or None, end_date=end_date or None)
+    transactions = queries.get_recent_transactions(uid, start_date=start_date or None, end_date=end_date or None)
+    categories = queries.get_category_breakdown(uid, start_date=start_date or None, end_date=end_date or None)
     return render_template("profile.html",
                            user=user, stats=stats,
-                           transactions=transactions, categories=categories)
+                           transactions=transactions, categories=categories,
+                           start_date=start_date, end_date=end_date,
+                           range_label=range_label)
 
 
 @app.route("/expenses/add")
